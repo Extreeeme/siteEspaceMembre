@@ -11,7 +11,15 @@
 		if (empty($_POST['password']) || $_POST["password"] != $_POST["password-confirm"]){
 			$error['password'] = "Les mots de passe ne correspondent pas";
 		}
-		debug($error);
+		if (empty($error)){
+			require_once 'inc/db.php';
+			$password = password_hash($_POST["password"], PASSWORD_BCRYPT);
+			$req = $pdo->prepare('INSERT INTO user SET pseudo = ?, mail = ?, password = ?');
+			$req->execute([$_POST["username"], $_POST["mail"], $password]);
+		}else{
+			debug($error);	
+		}
+		
 	}
 ?>
 
