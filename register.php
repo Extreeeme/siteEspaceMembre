@@ -1,7 +1,7 @@
 <?php
 	$error = array();
 	if (!empty($_POST)){
-
+		require_once 'function.php';
 		if (empty($_POST['username']) || !preg_match('/^[a-zA-Z0-9_]+$/', $_POST['username'])){
 			$error['username'] = "Votre pseudo n'est pas valide (alpha_numerique)";
 		}
@@ -9,11 +9,9 @@
 			$error['mail'] = "Votre mail n'est pas valide";
 		}
 		if (empty($_POST['password']) || $_POST["password"] != $_POST["password-confirm"]){
-			$error['password'] = "Les mot de passe ne correspondent pas";
+			$error['password'] = "Les mots de passe ne correspondent pas";
 		}
-		var_dump($error);
-
-
+		debug($error);
 	}
 ?>
 
