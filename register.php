@@ -1,23 +1,49 @@
 <?php
-	$error = array();
+	session_start();
 	if (!empty($_POST)){
-		require_once 'function.php';
+		require_once 'inc/function.php';
+		require_once 'inc/db.php';
 		if (empty($_POST['username']) || !preg_match('/^[a-zA-Z0-9_]+$/', $_POST['username'])){
-			$error['username'] = "Votre pseudo n'est pas valide (alpha_numerique)";
+			$_SESSION["flash"]["danger"]= "Votre pseudo n'est pas valide (alpha_numerique)";
+		}else{
+			$req = $pdo->prepare('SELECT id FROM user WHERE pseudo = ?');
+			$req->execute([$_POST["username"]]);
+			$user = $req->fetch();
+			if($user){
+				$_SESSION["flash"]["danger"]= "Ce pseudo est déjà utilisé";
+			}
 		}
 		if (empty($_POST['mail']) || !filter_var($_POST['mail'], FILTER_VALIDATE_EMAIL)){
-			$error['mail'] = "Votre mail n'est pas valide";
+			$_SESSION["flash"]["danger"] = "Votre mail n'est pas valide";
+		}else{
+			$req = $pdo->prepare('SELECT id FROM user WHERE mail = ?');
+			$req->execute([$_POST["mail"]]);
+			$user = $req->fetch();
+			if($user){
+				$_SESSION["flash"]["danger"] = "Ce mail est déjà utilisé";
+			}
 		}
 		if (empty($_POST['password']) || $_POST["password"] != $_POST["password-confirm"]){
-			$error['password'] = "Les mots de passe ne correspondent pas";
+			$_SESSION["flash"]["danger"]= "Les mots de passe ne correspondent pas";
 		}
-		if (empty($error)){
-			require_once 'inc/db.php';
+		if (empty($_SESSION["flash"])){
+			$token = str_random(60);
 			$password = password_hash($_POST["password"], PASSWORD_BCRYPT);
-			$req = $pdo->prepare('INSERT INTO user SET pseudo = ?, mail = ?, password = ?');
-			$req->execute([$_POST["username"], $_POST["mail"], $password]);
-		}else{
-			debug($error);	
+			$req = $pdo->prepare('INSERT INTO user SET pseudo = ?, mail = ?, password = ?, valid_token = ?');
+			$req->execute([$_POST["username"], $_POST["mail"], $password, $token]);
+			$user_id = $pdo->lastInsertId();
+
+			// mail($_POST["mail"], "Mail de confirmation", "Merci de cliquer sur le lien pour confirmer votre  compte\n\n http://localhost/siteEspaceMembre/confirm.php?id=$user_id&token=$token");
+
+			my_mail(
+				$_POST["mail"], 
+				$_POST["username"], 
+				"Confirmation de votre compte", 
+				"Mail de confirmation : Merci de cliquer sur le lien pour confirmer votre  compte<br/>\n\n http://localhost/siteEspaceMembre/confirm.php?id=$user_id&token=$token"
+				);
+			$_SESSION["flash"]["success"] = "Un mail de confirmation vous a été envoyé";
+			header('location: login.php');
+			exit();
 		}
 		
 	}
